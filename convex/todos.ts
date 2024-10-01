@@ -1,3 +1,4 @@
+import { Id } from "./_generated/dataModel";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -71,14 +72,21 @@ export const createATodo = mutation({
     labelId: v.id("labels"),
   },
   handler: async (ctx, { taskName, description, priority, dueDate, projectId, labelId }) => {
+    try {
     const newTaskId = await ctx.db.insert("todos", {
+      userId: "jn7836q4b5twm0f0ry6tbw64qn71eaka" as Id<"users">,
       taskName,
       description,
       priority,
       dueDate,
       projectId,
       labelId,
+      isCompleted: false,
     });
     return newTaskId;
+  } catch (err) {
+    console.log("Error creating a todo", err);
+    return '';
+  }
   },
 });

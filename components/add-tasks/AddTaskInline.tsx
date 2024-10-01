@@ -5,8 +5,9 @@ import { Button } from '../ui/button';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import moment from 'moment';
 
-import { toast } from '@/hooks/use-toast';
+import { toast, useToast } from '@/hooks/use-toast';
 import {
   Form,
   FormControl,
@@ -32,8 +33,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
-import { Doc } from '@/convex/_generated/dataModel';
-import { useQuery } from 'convex/react';
+import { Doc, Id } from '@/convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 
 const FormSchema = z.object({
@@ -52,23 +53,49 @@ export default function AddTaskInline({
 }: {
   setShowAddTask: Dispatch<SetStateAction<boolean>>;
 }) {
+  const { toast } = useToast();
   const projects = useQuery(api.projects.getProjects) ?? [];
   const labels = useQuery(api.labels.getLabels) ?? [];
 
+  const createAToDoMutation = useMutation(api.todos.createATodo);
+
+  const defaultValues = {
+    taskName: '',
+    description: '',
+    priority: '1',
+    dueDate: new Date(),
+    projectId: 'k1733gcnz9rwjpwn876bk24aen71gh54' as Id<'projects'>,
+    labelId: 'jx75wcs3n716rv3etdmpkkx8t971h7nw' as Id<'labels'>,
+  };
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
-    defaultValues: {
-      taskName: '',
-      description: '',
-      priority: '1',
-      dueDate: new Date(),
-      projectId: 'k1733gcnz9rwjpwn876bk24aen71gh54',
-      labelId: 'jx75wcs3n716rv3etdmpkkx8t971h7nw',
-    },
+    defaultValues,
   });
 
-  async function onSubmit(data: z.infer<typeof FormSchema>) {}
+  async function onSubmit(data: z.infer<typeof FormSchema>) {
+    const { taskName, description, priority, dueDate, projectId, labelId } =
+      data;
 
+    if (projectId) {
+      const mutationId = createAToDoMutation({
+        taskName,
+        description,
+        priority: parseInt(priority),
+        dueDate: moment(dueDate).valueOf(),
+        projectId: projectId as Id<'projects'>,
+        labelId: labelId as Id<'labels'>,
+      });
+
+      if (mutationId !== undefined) {
+        toast({
+          title: 'Task added successfully',
+          duration: 3000,
+        });
+        form.reset({ ...defaultValues });
+      }
+    }
+  }
   return (
     <div>
       {/* {JSON.stringify(form.getValues(), null, 2)} */}
