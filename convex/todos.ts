@@ -1,47 +1,67 @@
 import { Id } from "./_generated/dataModel";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { handleUserId } from "./auth";
 
 export const get = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("todos").collect();
+    const userId = await handleUserId(ctx);
+    if (userId) {
+      return await ctx.db
+        .query("todos")
+        .filter((q) => q.eq(q.field("userId"), userId))
+        .collect();
+    }
+    return [];
   },
 });
 
 export const completedTodos = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db
-      .query("todos")
-      .filter((q) => q.eq(q.field("isCompleted"), true))
-      .collect();
+    const userId = await handleUserId(ctx);
+    if (userId) {
+      return await ctx.db
+        .query("todos")
+        .filter((q) => q.eq(q.field("userId"), userId))
+        .filter((q) => q.eq(q.field("isCompleted"), true))
+        .collect();
+    }
+    return [];
   },
 });
 
 export const inCompleteTodos = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db
-      .query("todos")
-      .filter((q) => q.eq(q.field("isCompleted"), false))
-      .collect();
+    const userId = await handleUserId(ctx);
+    if (userId) {
+      return await ctx.db
+        .query("todos")
+        .filter((q) => q.eq(q.field("userId"), userId))
+        .filter((q) => q.eq(q.field("isCompleted"), false))
+        .collect();
+    }
+    return [];
   },
 });
 
 export const totalTodos = query({
   args: {},
   handler: async (ctx) => {
-    const todos = await ctx.db
-      .query("todos")
-      .filter((q) => q.eq(q.field("isCompleted"), true))
-      .collect();
-
+    const userId = await handleUserId(ctx);
+    if (userId) {
+      const todos = await ctx.db
+        .query("todos")
+        .filter((q) => q.eq(q.field("userId"), userId))
+        .filter((q) => q.eq(q.field("isCompleted"), true))
+        .collect();
       return todos.length || 0;
+    }
+    return 0;
   },
 });
-
-
 
 
 export const checkATodo = mutation({
@@ -52,7 +72,6 @@ export const checkATodo = mutation({
   },
 });
 
-
 export const unCheckATodo = mutation({
   args: { taskId: v.id("todos") },
   handler: async (ctx, { taskId }) => {
@@ -60,7 +79,6 @@ export const unCheckATodo = mutation({
     return newTaskId;
   },
 });
-
 
 export const createATodo = mutation({
   args: {
@@ -73,20 +91,24 @@ export const createATodo = mutation({
   },
   handler: async (ctx, { taskName, description, priority, dueDate, projectId, labelId }) => {
     try {
-    const newTaskId = await ctx.db.insert("todos", {
-      userId: "jn7836q4b5twm0f0ry6tbw64qn71eaka" as Id<"users">,
-      taskName,
-      description,
-      priority,
-      dueDate,
-      projectId,
-      labelId,
-      isCompleted: false,
-    });
-    return newTaskId;
+    const userId = await handleUserId(ctx);
+    if (userId) {
+      const newTaskId = await ctx.db.insert("todos", {
+        userId,
+        taskName,
+        description,
+        priority,
+        dueDate,
+        projectId,
+        labelId,
+        isCompleted: false,
+      });
+      return newTaskId;
+    }
+    return null;
   } catch (err) {
     console.log("Error creating a todo", err);
-    return '';
+    return null;
   }
   },
 });

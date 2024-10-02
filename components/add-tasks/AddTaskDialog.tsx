@@ -13,11 +13,12 @@ import { api } from '@/convex/_generated/api';
 import { useEffect, useState } from 'react';
 
 export default function AddTaskDialog({
-  data: { taskName, description, projectId },
+  data: { taskName, description, projectId, labelId, priority, dueDate },
 }: {
   data: Doc<'todos'>;
 }) {
   const project = useQuery(api.projects.getProjectByProjectId, { projectId });
+  const label = useQuery(api.labels.getLabelByLabelId, { labelId });
 
   const [todoDetails, setTodoDetails] = useState([]);
 
@@ -30,22 +31,22 @@ export default function AddTaskDialog({
       },
       {
         labelName: 'Due date',
-        value: format('2024/11/11', 'MMM dd yyyy'),
+        value: format(dueDate, 'MMM dd yyyy'),
         icon: <Calendar className='w-4 h-4 text-primary capitalize' />,
       },
       {
         labelName: 'Priority',
-        value: '1',
+        value: priority,
         icon: <Flag className='w-4 h-4 text-primary capitalize' />,
       },
       {
         labelName: 'Label',
-        value: 'Get Started',
+        value: label?.name,
         icon: <Tag className='w-4 h-4 text-primary capitalize' />,
       },
     ];
     setTodoDetails(data);
-  }, [project?.name]);
+  }, [project, label?.name, dueDate, priority]);
 
   return (
     <DialogContent className='max-w-4xl lg:h-4/6 flex flex-col md:flex-row lg:justify-between text-right'>
